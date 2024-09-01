@@ -1,0 +1,16 @@
+diff --git a/dist/runtime/native/api.js b/dist/runtime/native/api.js
+index 4b7306530fe51b5a4154511d9830a30bb5d506c9..2138d13ff39f9cec573808198abb85bb91358103 100644
+--- a/dist/runtime/native/api.js
++++ b/dist/runtime/native/api.js
+@@ -71,7 +71,10 @@ const remapProps = (component, mapping) => {
+ exports.remapProps = remapProps;
+ function useColorScheme() {
+     const [effect, setEffect] = (0, react_1.useState)(() => ({
+-        run: () => setEffect((s) => ({ ...s })),
++        run: () => setEffect((s) => {
++            (0, observable_1.cleanupEffect)(s);
++            return { ...s };
++        }),
+         dependencies: new Set(),
+     }));
+     return {

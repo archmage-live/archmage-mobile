@@ -15,7 +15,7 @@ module.exports = {
     require.resolve('prettier-plugin-multiline-arrays'),
     require.resolve('prettier-plugin-tailwindcss')
   ],
-  importOrder: ['^@/(.*)$', '^[./]'],
+  importOrder: ['^~/(.*)$', '^@/(.*)$', '^[./]'],
   importOrderSeparation: true,
   importOrderSortSpecifiers: true
 }

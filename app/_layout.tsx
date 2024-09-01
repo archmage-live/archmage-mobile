@@ -1,41 +1,61 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
-import { verifyInstallation } from 'nativewind';
+// sort-imports-ignore
+import '@/global.css'
 
-import '@/global.css';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { Theme, ThemeProvider } from '@react-navigation/native'
+import { useFonts } from 'expo-font'
+import { Stack } from 'expo-router'
+import * as SplashScreen from 'expo-splash-screen'
+import { StatusBar } from 'expo-status-bar'
+import { verifyInstallation as nativewindVerifyInstallation } from 'nativewind'
+import { useEffect } from 'react'
+import 'react-native-reanimated'
+
+import { useColorScheme } from '@/hooks/useColorScheme'
+import { NAV_THEME } from '@/lib/constants'
+
+const LIGHT_THEME: Theme = {
+  dark: false,
+  colors: NAV_THEME.light
+}
+const DARK_THEME: Theme = {
+  dark: true,
+  colors: NAV_THEME.dark
+}
+
+export {
+  // Catch any errors thrown by the Layout component.
+  ErrorBoundary
+} from 'expo-router'
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync()
 
 export default function RootLayout() {
-  verifyInstallation();
+  nativewindVerifyInstallation()
 
-  const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
+  const { isDarkColorScheme, isColorSchemeLoaded } = useColorScheme()
+
+  const [isFontsLoaded] = useFonts({
+    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf')
+  })
 
   useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
+    if (isColorSchemeLoaded && isFontsLoaded) {
+      SplashScreen.hideAsync()
     }
-  }, [loaded]);
+  }, [isColorSchemeLoaded, isFontsLoaded])
 
-  if (!loaded) {
-    return null;
+  if (!isColorSchemeLoaded || !isFontsLoaded) {
+    return null
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={isDarkColorScheme ? DARK_THEME : LIGHT_THEME}>
+      <StatusBar style={isDarkColorScheme ? 'light' : 'dark'} />
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
     </ThemeProvider>
-  );
+  )
 }
