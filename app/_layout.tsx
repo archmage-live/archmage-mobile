@@ -2,6 +2,7 @@
 import '@/global.css'
 
 import { Theme, ThemeProvider } from '@react-navigation/native'
+import { useDrizzleStudio } from 'expo-drizzle-studio-plugin'
 import { useFonts } from 'expo-font'
 import { Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
@@ -10,8 +11,10 @@ import { verifyInstallation as nativewindVerifyInstallation } from 'nativewind'
 import { useEffect } from 'react'
 import 'react-native-reanimated'
 
+import '@/global.css'
 import { useColorScheme } from '@/hooks/useColorScheme'
 import { NAV_THEME } from '@/lib/constants'
+import { expoDb } from '@/lib/db'
 
 const LIGHT_THEME: Theme = {
   dark: false,
@@ -32,6 +35,8 @@ SplashScreen.preventAutoHideAsync()
 
 export default function RootLayout() {
   nativewindVerifyInstallation()
+
+  useDrizzleStudio(expoDb)
 
   const { isDarkColorScheme, isColorSchemeLoaded } = useColorScheme()
 
