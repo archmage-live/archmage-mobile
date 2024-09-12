@@ -11,7 +11,6 @@ import { verifyInstallation as nativewindVerifyInstallation } from 'nativewind'
 import { useEffect } from 'react'
 import 'react-native-reanimated'
 
-import '@/global.css'
 import { useColorScheme } from '@/hooks/useColorScheme'
 import { NAV_THEME } from '@/lib/constants'
 import { expoDb } from '@/lib/db'
@@ -59,6 +58,7 @@ export default function RootLayout() {
       <StatusBar style={isDarkColorScheme ? 'light' : 'dark'} />
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="settings" options={{ title: 'Settings' }} />
         <Stack.Screen name="+not-found" />
       </Stack>
     </ThemeProvider>
