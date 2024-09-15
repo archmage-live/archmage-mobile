@@ -13,8 +13,7 @@ module.exports = {
   plugins: [
     require.resolve('@trivago/prettier-plugin-sort-imports'),
     require.resolve('prettier-plugin-multiline-arrays'),
-    require.resolve('prettier-plugin-tailwindcss')
-  ],
+    require.resolve('prettier-plugin-tailwindcss')],
   importOrder: ['^~/(.*)$', '^@/(.*)$', '^[./]'],
   importOrderSeparation: true,
   importOrderSortSpecifiers: true

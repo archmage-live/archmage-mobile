@@ -5,7 +5,7 @@ export const wallets = sqliteTable(
   {
     id: integer('id').primaryKey(),
     sortId: integer('id').unique().notNull(),
-    name: text('name').unique().notNull(),
+    name: text('name').unique().notNull()
   },
   (wallets) => ({
     nameIdx: uniqueIndex('nameIdx').on(wallets.name)

@@ -1,7 +1,7 @@
-import * as NavigationMenuPrimitive from '@rn-primitives/navigation-menu';
-import { cva } from 'class-variance-authority';
-import * as React from 'react';
-import { Platform, View } from 'react-native';
+import * as NavigationMenuPrimitive from '@rn-primitives/navigation-menu'
+import { cva } from 'class-variance-authority'
+import * as React from 'react'
+import { Platform, View } from 'react-native'
 import Animated, {
   Extrapolation,
   FadeInLeft,
@@ -9,10 +9,11 @@ import Animated, {
   interpolate,
   useAnimatedStyle,
   useDerivedValue,
-  withTiming,
-} from 'react-native-reanimated';
-import { ChevronDown } from '~/lib/icons/ChevronDown';
-import { cn } from '~/lib/utils';
+  withTiming
+} from 'react-native-reanimated'
+
+import { ChevronDown } from '~/lib/icons/ChevronDown'
+import { cn } from '~/lib/utils'
 
 const NavigationMenu = React.forwardRef<
   React.ElementRef<typeof NavigationMenuPrimitive.Root>,
@@ -20,14 +21,13 @@ const NavigationMenu = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
   <NavigationMenuPrimitive.Root
     ref={ref}
-    className={cn('relative z-10 flex flex-row max-w-max items-center justify-center', className)}
-    {...props}
-  >
+    className={cn('relative z-10 flex max-w-max flex-row items-center justify-center', className)}
+    {...props}>
     {children}
     {Platform.OS === 'web' && <NavigationMenuViewport />}
   </NavigationMenuPrimitive.Root>
-));
-NavigationMenu.displayName = NavigationMenuPrimitive.Root.displayName;
+))
+NavigationMenu.displayName = NavigationMenuPrimitive.Root.displayName
 
 const NavigationMenuList = React.forwardRef<
   React.ElementRef<typeof NavigationMenuPrimitive.List>,
@@ -36,34 +36,34 @@ const NavigationMenuList = React.forwardRef<
   <NavigationMenuPrimitive.List
     ref={ref}
     className={cn(
-      'web:group flex flex-1 flex-row web:list-none items-center justify-center gap-1',
+      'web:group flex flex-1 flex-row items-center justify-center gap-1 web:list-none',
       className
     )}
     {...props}
   />
-));
-NavigationMenuList.displayName = NavigationMenuPrimitive.List.displayName;
+))
+NavigationMenuList.displayName = NavigationMenuPrimitive.List.displayName
 
-const NavigationMenuItem = NavigationMenuPrimitive.Item;
+const NavigationMenuItem = NavigationMenuPrimitive.Item
 
 const navigationMenuTriggerStyle = cva(
   'web:group web:inline-flex flex-row h-10 native:h-12 native:px-3 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium web:transition-colors web:hover:bg-accent active:bg-accent web:hover:text-accent-foreground web:focus:bg-accent web:focus:text-accent-foreground web:focus:outline-none web:disabled:pointer-events-none disabled:opacity-50 web:data-[active]:bg-accent/50 web:data-[state=open]:bg-accent/50'
-);
+)
 
 const NavigationMenuTrigger = React.forwardRef<
   React.ElementRef<typeof NavigationMenuPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Trigger>
 >(({ className, children, ...props }, ref) => {
-  const { value } = NavigationMenuPrimitive.useRootContext();
-  const { value: itemValue } = NavigationMenuPrimitive.useItemContext();
+  const { value } = NavigationMenuPrimitive.useRootContext()
+  const { value: itemValue } = NavigationMenuPrimitive.useItemContext()
 
   const progress = useDerivedValue(() =>
     value === itemValue ? withTiming(1, { duration: 250 }) : withTiming(0, { duration: 200 })
-  );
+  )
   const chevronStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${progress.value * 180}deg` }],
-    opacity: interpolate(progress.value, [0, 1], [1, 0.8], Extrapolation.CLAMP),
-  }));
+    opacity: interpolate(progress.value, [0, 1], [1, 0.8], Extrapolation.CLAMP)
+  }))
 
   return (
     <NavigationMenuPrimitive.Trigger
@@ -74,55 +74,52 @@ const NavigationMenuTrigger = React.forwardRef<
         value === itemValue && 'bg-accent',
         className
       )}
-      {...props}
-    >
+      {...props}>
       <>{children}</>
       <Animated.View style={chevronStyle}>
         <ChevronDown
           size={12}
-          className={cn('relative text-foreground h-3 w-3 web:transition web:duration-200')}
+          className={cn('relative h-3 w-3 text-foreground web:transition web:duration-200')}
           aria-hidden={true}
         />
       </Animated.View>
     </NavigationMenuPrimitive.Trigger>
-  );
-});
-NavigationMenuTrigger.displayName = NavigationMenuPrimitive.Trigger.displayName;
+  )
+})
+NavigationMenuTrigger.displayName = NavigationMenuPrimitive.Trigger.displayName
 
 const NavigationMenuContent = React.forwardRef<
   React.ElementRef<typeof NavigationMenuPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Content> & {
-    portalHost?: string;
+    portalHost?: string
   }
 >(({ className, children, portalHost, ...props }, ref) => {
-  const { value } = NavigationMenuPrimitive.useRootContext();
-  const { value: itemValue } = NavigationMenuPrimitive.useItemContext();
+  const { value } = NavigationMenuPrimitive.useRootContext()
+  const { value: itemValue } = NavigationMenuPrimitive.useItemContext()
   return (
     <NavigationMenuPrimitive.Portal hostName={portalHost}>
       <NavigationMenuPrimitive.Content
         ref={ref}
         className={cn(
-          'w-full native:border native:border-border native:rounded-lg native:shadow-lg native:bg-popover native:text-popover-foreground native:overflow-hidden',
+          'native:border native:border-border native:rounded-lg native:shadow-lg native:bg-popover native:text-popover-foreground native:overflow-hidden w-full',
           value === itemValue
             ? 'web:animate-in web:fade-in web:slide-in-from-right-20'
             : 'web:animate-out web:fade-out web:slide-out-to-left-20',
           className
         )}
-        {...props}
-      >
+        {...props}>
         <Animated.View
           entering={Platform.OS !== 'web' ? FadeInLeft : undefined}
-          exiting={Platform.OS !== 'web' ? FadeOutLeft : undefined}
-        >
+          exiting={Platform.OS !== 'web' ? FadeOutLeft : undefined}>
           {children}
         </Animated.View>
       </NavigationMenuPrimitive.Content>
     </NavigationMenuPrimitive.Portal>
-  );
-});
-NavigationMenuContent.displayName = NavigationMenuPrimitive.Content.displayName;
+  )
+})
+NavigationMenuContent.displayName = NavigationMenuPrimitive.Content.displayName
 
-const NavigationMenuLink = NavigationMenuPrimitive.Link;
+const NavigationMenuLink = NavigationMenuPrimitive.Link
 
 const NavigationMenuViewport = React.forwardRef<
   React.ElementRef<typeof NavigationMenuPrimitive.Viewport>,
@@ -132,25 +129,24 @@ const NavigationMenuViewport = React.forwardRef<
     <View className={cn('absolute left-0 top-full flex justify-center')}>
       <View
         className={cn(
-          'web:origin-top-center relative mt-1.5 web:h-[var(--radix-navigation-menu-viewport-height)] w-full overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-lg web:animate-in web:zoom-in-90',
+          'web:origin-top-center web:animate-in web:zoom-in-90 relative mt-1.5 w-full overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-lg web:h-[var(--radix-navigation-menu-viewport-height)]',
           className
         )}
         ref={ref}
-        {...props}
-      >
+        {...props}>
         <NavigationMenuPrimitive.Viewport />
       </View>
     </View>
-  );
-});
-NavigationMenuViewport.displayName = NavigationMenuPrimitive.Viewport.displayName;
+  )
+})
+NavigationMenuViewport.displayName = NavigationMenuPrimitive.Viewport.displayName
 
 const NavigationMenuIndicator = React.forwardRef<
   React.ElementRef<typeof NavigationMenuPrimitive.Indicator>,
   React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Indicator>
 >(({ className, ...props }, ref) => {
-  const { value } = NavigationMenuPrimitive.useRootContext();
-  const { value: itemValue } = NavigationMenuPrimitive.useItemContext();
+  const { value } = NavigationMenuPrimitive.useRootContext()
+  const { value: itemValue } = NavigationMenuPrimitive.useItemContext()
 
   return (
     <NavigationMenuPrimitive.Indicator
@@ -160,13 +156,12 @@ const NavigationMenuIndicator = React.forwardRef<
         value === itemValue ? 'web:animate-in web:fade-in' : 'web:animate-out web:fade-out',
         className
       )}
-      {...props}
-    >
-      <View className='relative top-[60%] h-2 w-2 rotate-45 rounded-tl-sm bg-border shadow-md shadow-foreground/5' />
+      {...props}>
+      <View className="relative top-[60%] h-2 w-2 rotate-45 rounded-tl-sm bg-border shadow-md shadow-foreground/5" />
     </NavigationMenuPrimitive.Indicator>
-  );
-});
-NavigationMenuIndicator.displayName = NavigationMenuPrimitive.Indicator.displayName;
+  )
+})
+NavigationMenuIndicator.displayName = NavigationMenuPrimitive.Indicator.displayName
 
 export {
   NavigationMenu,
@@ -177,5 +172,5 @@ export {
   NavigationMenuList,
   NavigationMenuTrigger,
   NavigationMenuViewport,
-  navigationMenuTriggerStyle,
-};
+  navigationMenuTriggerStyle
+}

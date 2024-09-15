@@ -1,7 +1,8 @@
-import * as React from 'react';
-import * as TablePrimitive from '@rn-primitives/table';
-import { cn } from '~/lib/utils';
-import { TextClassContext } from '~/components/ui/text';
+import * as TablePrimitive from '@rn-primitives/table'
+import * as React from 'react'
+
+import { TextClassContext } from '~/components/ui/text'
+import { cn } from '~/lib/utils'
 
 const Table = React.forwardRef<
   React.ElementRef<typeof TablePrimitive.Root>,
@@ -12,8 +13,8 @@ const Table = React.forwardRef<
     className={cn('w-full caption-bottom text-sm', className)}
     {...props}
   />
-));
-Table.displayName = 'Table';
+))
+Table.displayName = 'Table'
 
 const TableHeader = React.forwardRef<
   React.ElementRef<typeof TablePrimitive.Header>,
@@ -24,8 +25,8 @@ const TableHeader = React.forwardRef<
     className={cn('border-border [&_tr]:border-b', className)}
     {...props}
   />
-));
-TableHeader.displayName = 'TableHeader';
+))
+TableHeader.displayName = 'TableHeader'
 
 const TableBody = React.forwardRef<
   React.ElementRef<typeof TablePrimitive.Body>,
@@ -37,8 +38,8 @@ const TableBody = React.forwardRef<
     style={[{ minHeight: 2 }, style]}
     {...props}
   />
-));
-TableBody.displayName = 'TableBody';
+))
+TableBody.displayName = 'TableBody'
 
 const TableFooter = React.forwardRef<
   React.ElementRef<typeof TablePrimitive.Footer>,
@@ -49,8 +50,8 @@ const TableFooter = React.forwardRef<
     className={cn('bg-muted/50 font-medium [&>tr]:last:border-b-0', className)}
     {...props}
   />
-));
-TableFooter.displayName = 'TableFooter';
+))
+TableFooter.displayName = 'TableFooter'
 
 const TableRow = React.forwardRef<
   React.ElementRef<typeof TablePrimitive.Row>,
@@ -59,30 +60,30 @@ const TableRow = React.forwardRef<
   <TablePrimitive.Row
     ref={ref}
     className={cn(
-      'flex-row border-border border-b web:transition-colors web:hover:bg-muted/50 web:data-[state=selected]:bg-muted',
+      'flex-row border-b border-border web:transition-colors web:hover:bg-muted/50 web:data-[state=selected]:bg-muted',
       className
     )}
     {...props}
   />
-));
-TableRow.displayName = 'TableRow';
+))
+TableRow.displayName = 'TableRow'
 
 const TableHead = React.forwardRef<
   React.ElementRef<typeof TablePrimitive.Head>,
   React.ComponentPropsWithoutRef<typeof TablePrimitive.Head>
 >(({ className, ...props }, ref) => (
-  <TextClassContext.Provider value='text-muted-foreground'>
+  <TextClassContext.Provider value="text-muted-foreground">
     <TablePrimitive.Head
       ref={ref}
       className={cn(
-        'h-12 px-4 text-left justify-center font-medium [&:has([role=checkbox])]:pr-0',
+        'h-12 justify-center px-4 text-left font-medium [&:has([role=checkbox])]:pr-0',
         className
       )}
       {...props}
     />
   </TextClassContext.Provider>
-));
-TableHead.displayName = 'TableHead';
+))
+TableHead.displayName = 'TableHead'
 
 const TableCell = React.forwardRef<
   React.ElementRef<typeof TablePrimitive.Cell>,
@@ -93,7 +94,7 @@ const TableCell = React.forwardRef<
     className={cn('p-4 align-middle [&:has([role=checkbox])]:pr-0', className)}
     {...props}
   />
-));
-TableCell.displayName = 'TableCell';
+))
+TableCell.displayName = 'TableCell'
 
-export { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow };
+export { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow }

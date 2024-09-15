@@ -1,11 +1,11 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { StyleSheet, Image, Platform } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons'
+import { Image, Platform, StyleSheet } from 'react-native'
 
-import { Collapsible } from '@/components/Collapsible';
-import { ExternalLink } from '@/components/ExternalLink';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import { Collapsible } from '@/components/Collapsible'
+import { ExternalLink } from '@/components/ExternalLink'
+import ParallaxScrollView from '@/components/ParallaxScrollView'
+import { ThemedText } from '@/components/ThemedText'
+import { ThemedView } from '@/components/ThemedView'
 
 export default function TabTwoScreen() {
   return (
@@ -72,8 +72,8 @@ export default function TabTwoScreen() {
         <ThemedText>
           This template includes an example of an animated component. The{' '}
           <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful <ThemedText type="defaultSemiBold">react-native-reanimated</ThemedText> library
-          to create a waving hand animation.
+          the powerful <ThemedText type="defaultSemiBold">react-native-reanimated</ThemedText>{' '}
+          library to create a waving hand animation.
         </ThemedText>
         {Platform.select({
           ios: (
@@ -81,11 +81,11 @@ export default function TabTwoScreen() {
               The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
               component provides a parallax effect for the header image.
             </ThemedText>
-          ),
+          )
         })}
       </Collapsible>
     </ParallaxScrollView>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -93,10 +93,10 @@ const styles = StyleSheet.create({
     color: '#808080',
     bottom: -90,
     left: -35,
-    position: 'absolute',
+    position: 'absolute'
   },
   titleContainer: {
     flexDirection: 'row',
-    gap: 8,
-  },
-});
+    gap: 8
+  }
+})

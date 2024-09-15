@@ -9,8 +9,10 @@ import * as SplashScreen from 'expo-splash-screen'
 import { StatusBar } from 'expo-status-bar'
 import { verifyInstallation as nativewindVerifyInstallation } from 'nativewind'
 import { useEffect } from 'react'
+import { I18nextProvider } from 'react-i18next'
 import 'react-native-reanimated'
 
+import i18n from '@/archmage/i18n'
 import { useColorScheme } from '@/hooks/useColorScheme'
 import { NAV_THEME } from '@/lib/constants'
 import { expoDb } from '@/lib/db'
@@ -54,13 +56,15 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={isDarkColorScheme ? DARK_THEME : LIGHT_THEME}>
-      <StatusBar style={isDarkColorScheme ? 'light' : 'dark'} />
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="settings" options={{ title: 'Settings' }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-    </ThemeProvider>
+    <I18nextProvider i18n={i18n}>
+      <ThemeProvider value={isDarkColorScheme ? DARK_THEME : LIGHT_THEME}>
+        <StatusBar style={isDarkColorScheme ? 'light' : 'dark'} />
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+      </ThemeProvider>
+    </I18nextProvider>
   )
 }
