@@ -1,0 +1,22 @@
+// sort-imports-ignore
+
+// https://lingui.dev/tutorials/react-native#polyfilling-intl-apis
+import '@formatjs/intl-locale/polyfill-force'
+import '@formatjs/intl-pluralrules/polyfill-force'
+// https://github.com/formatjs/formatjs/blob/main/packages/intl-pluralrules/supported-locales.generated.ts
+import '@formatjs/intl-pluralrules/locale-data/en'
+import '@formatjs/intl-pluralrules/locale-data/es'
+import '@formatjs/intl-pluralrules/locale-data/fr'
+import '@formatjs/intl-pluralrules/locale-data/hi'
+import '@formatjs/intl-pluralrules/locale-data/id'
+import '@formatjs/intl-pluralrules/locale-data/ja'
+import '@formatjs/intl-pluralrules/locale-data/ms'
+import '@formatjs/intl-pluralrules/locale-data/nl'
+import '@formatjs/intl-pluralrules/locale-data/pt'
+import '@formatjs/intl-pluralrules/locale-data/ru'
+import '@formatjs/intl-pluralrules/locale-data/th'
+import '@formatjs/intl-pluralrules/locale-data/tr'
+import '@formatjs/intl-pluralrules/locale-data/uk'
+import '@formatjs/intl-pluralrules/locale-data/ur'
+import '@formatjs/intl-pluralrules/locale-data/vi'
+import '@formatjs/intl-pluralrules/locale-data/zh'
