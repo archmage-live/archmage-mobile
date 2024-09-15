@@ -1,8 +1,7 @@
-import { Extras } from '@sentry/types'
-
 import { logErrorToDatadog, logToDatadog, logWarningToDatadog } from '@/archmage/logger/Datadog'
 import { Sentry } from '@/archmage/logger/Sentry'
 import { LogLevel, LoggerErrorContext } from '@/archmage/logger/types'
+import { addErrorExtras } from '@/archmage/logger/util'
 import { isMobileApp, isWeb, isWebApp } from '@/archmage/platform'
 
 const SENTRY_CHAR_LIMIT = 8192
@@ -106,33 +105,6 @@ function logException(error: unknown, captureContext: LoggerErrorContext): void 
   if (isWebApp || isMobileApp) {
     logErrorToDatadog(error instanceof Error ? error : new Error(`${error}`), updatedContext)
   }
-}
-
-interface RNError {
-  nativeStackAndroid?: unknown
-  userInfo?: unknown
-}
-
-// Adds extra fields from errors provided by React Native
-export function addErrorExtras(
-  error: unknown,
-  captureContext: LoggerErrorContext
-): LoggerErrorContext {
-  if (error instanceof Error) {
-    const extras: Extras = {}
-    const { nativeStackAndroid, userInfo } = error as RNError
-
-    if (Array.isArray(nativeStackAndroid) && nativeStackAndroid.length > 0) {
-      extras.nativeStackAndroid = nativeStackAndroid
-    }
-
-    if (userInfo) {
-      extras.userInfo = userInfo
-    }
-
-    return { ...captureContext, extra: { ...captureContext.extra, ...extras } }
-  }
-  return captureContext
 }
 
 function pad(n: number, amount: number = 2): string {

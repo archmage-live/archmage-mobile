@@ -1,5 +1,6 @@
 // sort-imports-ignore
 import '@/global.css'
+import '@/polyfills'
 
 import { Theme, ThemeProvider } from '@react-navigation/native'
 import { useDrizzleStudio } from 'expo-drizzle-studio-plugin'

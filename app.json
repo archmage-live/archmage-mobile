@@ -37,8 +37,18 @@
           "project": "react-native",
           "organization": "archmage"
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "newArchEnabled": true
+          },
+          "android": {
+            "newArchEnabled": true
+          }
+        }
       ]
-
     ],
     "experiments": {
       "typedRoutes": true

@@ -1,7 +1,7 @@
 import { DdLogs, DdRum, ErrorSource } from '@datadog/mobile-react-native'
 
-import { addErrorExtras } from '@/archmage/logger/logger'
 import { LogLevel, LoggerErrorContext } from '@/archmage/logger/types'
+import { addErrorExtras } from '@/archmage/logger/util'
 
 export function logErrorToDatadog(error: Error, context: LoggerErrorContext): void {
   DdRum.addError(
