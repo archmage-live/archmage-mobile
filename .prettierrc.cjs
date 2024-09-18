@@ -16,5 +16,14 @@ module.exports = {
     require.resolve('prettier-plugin-tailwindcss')],
   importOrder: ['^~/(.*)$', '^@/(.*)$', '^[./]'],
   importOrderSeparation: true,
-  importOrderSortSpecifiers: true
+  importOrderSortSpecifiers: true,
+  overrides: [
+    {
+      files: './archmage/i18n/locales/**/*.json',
+      options: {
+        plugins: [
+          require.resolve('prettier-plugin-sort-json')]
+      }
+    }
+  ]
 }
