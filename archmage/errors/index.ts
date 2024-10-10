@@ -14,7 +14,7 @@ export class NotImplementedError extends Error {
   }
 }
 
-export function assert(predicate: unknown, errorMessage: string): void {
+export function assert(predicate: unknown, errorMessage: string): asserts predicate {
   if (!predicate) {
     throw new Error(errorMessage)
   }
