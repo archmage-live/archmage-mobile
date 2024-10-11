@@ -213,7 +213,10 @@ export enum Constant {
   INS_02 = 0x02,
   INS_04 = 0x04,
   INS_06 = 0x06,
+  INS_08 = 0x08,
+  INS_0C = 0x0c,
   INS_10 = 0x10,
+  INS_1A = 0x1a,
   INS_20 = 0x20,
   INS_A7 = 0xa7,
   INS_D4 = 0xd4,
@@ -267,6 +270,8 @@ export abstract class RequestHandler {
   abstract handleRequest(apdu: APDU): Promise<void>
 
   abstract respond(req: Request, rep: Record<string, any>): Promise<void>
+
+  abstract clean(): void
 }
 
 export function bufferStatusCode(statusCode: number) {

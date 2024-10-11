@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@apollo/client": "^3.11.8",
+    "@cosmjs/crypto": "^0.32.4",
     "@datadog/browser-logs": "^5.26.0",
     "@datadog/mobile-react-native": "^2.4.3",
     "@datadog/mobile-react-native-apollo-client": "^2.4.3",
@@ -28,6 +29,7 @@
     "@formatjs/intl-pluralrules": "^5.2.14",
     "@ledgerhq/devices": "^8.4.4",
     "@ledgerhq/errors": "^6.19.1",
+    "@ledgerhq/hw-app-eth": "^6.39.0",
     "@ledgerhq/hw-app-starknet": "^2.3.2",
     "@ledgerhq/hw-transport-web-ble": "^6.29.4",
     "@ledgerhq/react-native-hw-transport-ble": "^6.33.4",

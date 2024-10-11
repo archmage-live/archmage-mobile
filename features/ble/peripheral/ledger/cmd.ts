@@ -12,7 +12,11 @@ import {
   bufferStatusCode
 } from './peripheral'
 
-export default async function handleCmdRequest(peripheral: BaseLedgerBlePeripheral, apdu: APDU) {
+export default async function handleCmdRequest(
+  peripheral: BaseLedgerBlePeripheral,
+  apdu: APDU,
+  clean: () => void
+) {
   const [cla, ins, p1, p2, data] = apdu
 
   switch (cla) {
@@ -49,6 +53,9 @@ export default async function handleCmdRequest(peripheral: BaseLedgerBlePeripher
 
         const format = 1
         const flags: number[] = []
+
+        clean()
+
         await peripheral.send(
           Buffer.concat([
             Buffer.from([format, name.length]),
@@ -66,7 +73,7 @@ export default async function handleCmdRequest(peripheral: BaseLedgerBlePeripher
         peripheral.exitApp()
         await peripheral.send(Buffer.from([0x90, 0x00]))
       }
-      break
+      return true
     case Constant.CLA_E0:
       if (ins === Constant.INS_10 && p1 === Constant.P1_00) {
         // getBatteryStatus
@@ -75,27 +82,26 @@ export default async function handleCmdRequest(peripheral: BaseLedgerBlePeripher
             await peripheral.send(
               Buffer.concat([Buffer.from([100]), bufferStatusCode(StatusCodes.OK)])
             )
-            break
+            return true
           case BatteryStatusTypes.BATTERY_VOLTAGE:
             await peripheral.send(
               Buffer.concat([Buffer.from([0, 30]), bufferStatusCode(StatusCodes.OK)])
             )
-            break
+            return true
           case BatteryStatusTypes.BATTERY_TEMPERATURE:
           // pass through
           case BatteryStatusTypes.BATTERY_CURRENT:
             await peripheral.send(
               Buffer.concat([Buffer.from([30]), bufferStatusCode(StatusCodes.OK)])
             )
-            break
+            return true
           case BatteryStatusTypes.BATTERY_FLAGS:
             await peripheral.send(
               Buffer.concat([Buffer.from([0, 0, 0, 0]), bufferStatusCode(StatusCodes.OK)])
             )
-            break
+            return true
           default:
-            await peripheral.send(bufferStatusCode(StatusCodes.UNKNOWN_APDU))
-            break
+            return false
         }
       } else if (p1 === Constant.P1_00 && p2 === Constant.P2_00) {
         switch (ins) {
@@ -114,7 +120,7 @@ export default async function handleCmdRequest(peripheral: BaseLedgerBlePeripher
                 0
               ])
             )
-            break
+            return true
           case Constant.INS_D8:
             // openApp
             // https://developers.ledger.com/docs/connectivity/ledgerJS/open-close-info-on-apps#open-application
@@ -130,19 +136,17 @@ export default async function handleCmdRequest(peripheral: BaseLedgerBlePeripher
                 await peripheral.send(Buffer.from([0x68, 0x07]))
               }
             }
-            break
+            return true
           case Constant.INS_D4:
             // editDeviceName
             await peripheral.send(bufferStatusCode(StatusCodes.USER_REFUSED_ON_DEVICE))
-            break
+            return true
           default:
-            await peripheral.send(bufferStatusCode(StatusCodes.UNKNOWN_APDU))
-            break
+            return false
         }
       }
-      break
+      return true
     default:
-      await peripheral.send(bufferStatusCode(StatusCodes.UNKNOWN_APDU))
-      break
+      return false
   }
 }

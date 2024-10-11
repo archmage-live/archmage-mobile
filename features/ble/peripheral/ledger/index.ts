@@ -39,14 +39,17 @@ export class LedgerBlePeripheral extends BaseLedgerBlePeripheral {
     const apdu = await this.receive()
 
     try {
-      if (!this.app) {
-        return await handleCmdRequest(this, apdu)
-      } else {
+      const handled = await handleCmdRequest(this, apdu, () => {
+        this.handlers.get(App.Ethereum)?.clean()
+      })
+      if (handled) {
+        return
+      }
+
+      if (this.app) {
         const handler = this.handlers.get(this.app)
         if (handler) {
           return await handler?.handleRequest(apdu)
-        } else {
-          return await this.send(bufferStatusCode(StatusCodes.UNKNOWN_APDU))
         }
       }
     } catch (err) {
@@ -58,9 +61,9 @@ export class LedgerBlePeripheral extends BaseLedgerBlePeripheral {
       ) {
         return await this.send(bufferStatusCode(StatusCodes.INCORRECT_DATA))
       }
-
-      return await this.send(bufferStatusCode(StatusCodes.UNKNOWN_APDU))
     }
+
+    return await this.send(bufferStatusCode(StatusCodes.UNKNOWN_APDU))
   }
 
   async respond(req: Request, rep: Record<string, any>) {
