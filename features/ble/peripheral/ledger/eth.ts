@@ -2,19 +2,11 @@ import { Slip10RawIndex, pathToString } from '@cosmjs/crypto'
 import { StatusCodes } from '@ledgerhq/errors'
 import type { TypedDataParameter } from 'abitype'
 import { getBytes, randomBytes, zeroPadValue } from 'ethers'
-import {
-  Hex,
-  TypedData,
-  fromBytes,
-  getTransactionType,
-  hashTypedData,
-  parseTransaction,
-  toBytes,
-  toHex
-} from 'viem'
+import { Hex, getTransactionType, parseTransaction, toBytes, toHex } from 'viem'
 
 import { assert } from '@/archmage/errors'
 
+import { Eip712Decoder, Eip712TypedData } from './eip712'
 import {
   APDU,
   App,
@@ -117,102 +109,59 @@ export class EthRequestHandler extends RequestHandler {
         }
         case Constant.INS_0C: {
           assert(data, 'APDU empty data')
-          assert(p1 === Constant.P1_00 && p2 === Constant.P2_00, 'APDU invalid p1/p2')
+          assert(p1 === Constant.P1_00, 'APDU invalid p1')
           const [pathLen, path] = readHdPath(data)
-          const domainSeparator = toHex(data.subarray(pathLen, pathLen + 32))
-          const hashStructMessage = toHex(data.subarray(pathLen + 32, pathLen + 64))
-          const args: SignEIP712HashedMsgRequest = { path, domainSeparator, hashStructMessage }
-          return this.request(EthRequestType.SignEIP712HashedMessage, args)
+          if (data.length > pathLen) {
+            assert(p2 === Constant.P2_00, 'APDU invalid p2')
+            const domainSeparator = toHex(data.subarray(pathLen, pathLen + 32))
+            const hashStructMessage = toHex(data.subarray(pathLen + 32, pathLen + 64))
+            const args: SignEIP712HashedMsgRequest = { path, domainSeparator, hashStructMessage }
+            return this.request(EthRequestType.SignEIP712HashedMessage, args)
+          } else {
+            assert(p2 === Constant.P2_00 || p2 === 0x01, 'APDU invalid p2')
+            const args: SignEIP712MsgRequest = {
+              path,
+              typedData: this.eip712Decoder.typedData(),
+              legacy: p2 === Constant.P2_00
+            }
+            this.eip712Decoder = new Eip712Decoder() // clear
+            return this.request(EthRequestType.SignEIP712Message, args)
+          }
         }
         case Constant.INS_1A: {
+          // Receive `types` of EIP-712 typed data.
           assert(data, 'APDU empty data')
           assert(p1 === Constant.P1_00, 'APDU invalid p1')
           if (p2 === Constant.P2_00) {
-            const structTypeName = data.toString()
-            this.typedData[structTypeName] = []
-            this.typedDataName = structTypeName
+            this.eip712Decoder.receiveTypeName(data)
           } else {
             assert(p2 === 0xff, 'APDU invalid p2')
-
-            const getType = (key: number, size: number = 0, name: string = '') => {
-              switch (key) {
-                case 0:
-                  assert(name, 'invalid custom type name')
-                  return name
-                case 1:
-                  assert(size * 8 >= 8 && size * 8 <= 256, 'invalid int* type')
-                  return `int${size * 8}`
-                case 2:
-                  assert(size * 8 >= 8 && size * 8 <= 256, 'invalid uint* type')
-                  return `unt${size * 8}`
-                case 3:
-                  return 'address'
-                case 4:
-                  return 'bool'
-                case 5:
-                  return 'string'
-                case 6:
-                  assert(size >= 1 && size <= 32, 'invalid bytes* type')
-                  return `bytes${size}`
-                case 7:
-                  return 'bytes'
-                default:
-                  throw new Error('invalid type key')
-              }
-            }
-
-            let offset = 0
-            const typeDescData = data[offset].toString(2).padStart(8, '0')
-            const isTypeArray = typeDescData[0] === '1'
-            const hasTypeSize = typeDescData[1] === '1'
-            const typeKey = parseInt(typeDescData.slice(4), 2)
-            offset += 1
-
-            let customTypeName
-            if (typeKey === 0) {
-              const customTypeNameLen = data[offset]
-              offset += 1
-              customTypeName = data.subarray(offset, offset + customTypeNameLen).toString()
-              offset += customTypeNameLen
-            }
-
-            let typeSize
-            if (hasTypeSize) {
-              typeSize = data[offset]
-              offset += 1
-            }
-
-            const type = getType(typeKey, typeSize, customTypeName)
-
-            if (isTypeArray) {
-              const arraySizesNum = data[offset]
-              offset += 1
-
-              const arraySizes = []
-              for (let arraySize = 0; arraySize < arraySizesNum; arraySize++) {
-                const arrayType = data[offset]
-                offset += 1
-
-                if (arrayType === 1) {
-                  // fixed array
-                  arraySizes.push(data[offset])
-                  offset += 1
-                } else {
-                  // dynamic array
-                  assert(arrayType === 0, 'invalid array type')
-                  arraySizes.push(null)
-                }
-              }
-            }
-
-            const nameLen = data[offset]
-            offset += 1
-            const name = data.subarray(offset, offset + nameLen).toString()
-            offset += nameLen
-
-            this.typedData[this.typedDataName].push({ name, type })
+            this.eip712Decoder.receiveTypeDef(data)
           }
           return await peripheral.send(bufferStatusCode(StatusCodes.OK))
+        }
+        case Constant.INS_1C: {
+          // Receive `message` of EIP-712 typed data.
+          assert(data, 'APDU empty data')
+          if (p1 === Constant.P1_00 && p2 === Constant.P2_00) {
+            this.eip712Decoder.receiveValue(data, 'root')
+          } else if (p1 === Constant.P1_00 && p2 === 0x0f) {
+            this.eip712Decoder.receiveValue(data, 'array')
+          } else if (p1 === 0x01 && p2 === 0xff) {
+            this.eip712Decoder.receiveValue(data, 'fieldPartial')
+          } else if (p1 === Constant.P1_00 && p2 === 0xff) {
+            this.eip712Decoder.receiveValue(data, 'fieldComplete')
+          } else {
+            return await peripheral.send(bufferStatusCode(StatusCodes.UNKNOWN_APDU))
+          }
+        }
+        case Constant.INS_1E: {
+          assert(p1 === Constant.P1_00, 'APDU invalid p1')
+          switch (p2) {
+            case 0x00: {
+              return await peripheral.send(bufferStatusCode(StatusCodes.OK))
+            }
+          }
         }
         case Constant.INS_20: {
           // GetChallenge
@@ -344,6 +293,9 @@ export class EthRequestHandler extends RequestHandler {
 
   private typedData: Record<string, TypedDataParameter[]> = {}
   private typedDataName = ''
+  private typedDataMsgValueBuffers: Buffer[] = []
+
+  private eip712Decoder = new Eip712Decoder()
 }
 
 export enum EthRequestType {
@@ -393,12 +345,9 @@ export type SignEIP712HashedMsgRequest = {
 
 export type SignEIP712MsgRequest = {
   path: string
-  eip712Message: Eip712Message
+  typedData: Eip712TypedData
   legacy: boolean // ignored
 }
-
-type Eip712Message = Parameters<typeof hashTypedData>[0]
-type Eip712MessageTypes = Eip712Message['types']
 
 function readHdPath(data: Buffer): [number, string] {
   const pathLen = data.readUInt8()

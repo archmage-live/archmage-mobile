@@ -217,6 +217,8 @@ export enum Constant {
   INS_0C = 0x0c,
   INS_10 = 0x10,
   INS_1A = 0x1a,
+  INS_1C = 0x1c,
+  INS_1E = 0x1e,
   INS_20 = 0x20,
   INS_A7 = 0xa7,
   INS_D4 = 0xd4,
