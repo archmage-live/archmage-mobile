@@ -1,12 +1,9 @@
-import { Slip10RawIndex, pathToString } from '@cosmjs/crypto'
 import { StatusCodes } from '@ledgerhq/errors'
-import type { TypedDataParameter } from 'abitype'
 import { getBytes, randomBytes, zeroPadValue } from 'ethers'
-import { Hex, getTransactionType, parseTransaction, toBytes, toHex } from 'viem'
+import { Hex, getTransactionType, toBytes, toHex } from 'viem'
 
 import { assert } from '@/archmage/errors'
 
-import { Eip712Decoder, Eip712TypedData } from './eip712'
 import {
   APDU,
   App,
@@ -15,7 +12,14 @@ import {
   Request,
   RequestHandler,
   bufferStatusCode
-} from './peripheral'
+} from '../peripheral'
+import { RequestTimer, readHdPath } from '../util'
+import { DomainNameDecoder } from './domainName'
+import { Eip712Decoder, SignEIP712HashedMsgRequest, SignEIP712MsgRequest } from './eip712'
+import { TokenInfoDecoder } from './erc20'
+import { NftInfoDecoder } from './nft'
+import { PersonalSignDecoder } from './personalSign'
+import { SignTransactionRequest, TransactionDecoder } from './tx'
 
 export class EthRequestHandler extends RequestHandler {
   override async handleRequest(apdu: APDU) {
@@ -26,6 +30,7 @@ export class EthRequestHandler extends RequestHandler {
     if (cla === Constant.CLA_E0) {
       switch (ins) {
         case Constant.INS_02: {
+          // getAddress
           assert(data, 'APDU empty data')
           assert(p1 === Constant.P1_00 || p1 === 0x01, 'APDU invalid p1')
           assert(p2 === Constant.P2_00 || p2 === 0x01, 'APDU invalid p2')
@@ -37,36 +42,30 @@ export class EthRequestHandler extends RequestHandler {
             chainId = '0x' + data.readBigUInt64BE(pathLen).toString(16)
           }
           const args: GetAddressRequest = { path, shouldDisplay, requestChaincode, chainId }
-          return this.request(EthRequestType.GetAddress, args)
+          return this.request(RequestType.GetAddress, args)
         }
         case Constant.INS_04: {
+          // signTransaction
           assert(data, 'APDU empty data')
-          assert(p2 === Constant.P1_00, 'APDU invalid p2')
-          if (p1 === Constant.P1_00) {
-            const [pathLen, path] = readHdPath(data)
-            this.path = path
-            this.rawData = data.subarray(pathLen)
-          } else {
-            assert(p1 === 0x80, 'APDU invalid p1')
-            this.rawData = Buffer.concat([this.rawData, data])
-          }
-          try {
-            const rawTx = toHex(this.rawData)
-            const tx = parseTransaction(rawTx)
-
-            // If parsing succeeds, rawTx chunks have been received completely.
-            const args: SignTransactionRequest = { path: this.path, rawTx, tx }
-            this.path = ''
-            this.rawData = Buffer.alloc(0)
-            return this.request(EthRequestType.SignTransaction, args)
-          } catch {
-            // If parsing fails, continue to receive rawTx chunks.
-            // TODO: timeout handling
+          assert(p1 === Constant.P1_00 || p1 === 0x80, 'APDU invalid p1')
+          assert(p2 === Constant.P2_00, 'APDU invalid p2')
+          let args = this.txDecoder.receiveTransaction(data, p1 === Constant.P1_00)
+          if (!args) {
             return await peripheral.send(bufferStatusCode(StatusCodes.OK))
+          } else {
+            args = {
+              ...args,
+              tokenInfoProvider: this.tokenInfoDecoder.provider(),
+              nftInfoProvider: this.nftInfoDecoder.provider(),
+              domainNameProvider: this.domainNameDecoder.provider()
+            }
+            return this.request(RequestType.SignTransaction, args)
           }
         }
         case Constant.INS_06: {
+          // getAppConfiguration
           assert(p1 === Constant.P1_00 && p2 === Constant.P2_00, 'APDU invalid p1/p2')
+          // https://github.com/LedgerHQ/app-ethereum/blob/master/src_features/getAppConfiguration/cmd_getAppConfiguration.c
           const arbitraryDataEnabled = 0x01
           const erc20ProvisioningNecessary = 0x02
           const version = AppVersion.Ethereum.split('.').map(parseInt)
@@ -83,31 +82,20 @@ export class EthRequestHandler extends RequestHandler {
           )
         }
         case Constant.INS_08: {
+          // signPersonalMessage
           assert(data, 'APDU empty data')
+          assert(p1 === Constant.P1_00 || p1 === 0x80, 'APDU invalid p1')
           assert(p2 === Constant.P1_00, 'APDU invalid p2')
-          if (p1 === Constant.P1_00) {
-            const [pathLen, path] = readHdPath(data)
-            this.path = path
-            this.rawDataLen = data.readUInt32BE(pathLen)
-            this.rawData = data.subarray(pathLen + 1)
-          } else {
-            assert(p1 === 0x80, 'APDU invalid p1')
-            this.rawData = Buffer.concat([this.rawData, data])
-          }
-          if (this.rawData.length === this.rawDataLen) {
-            const args: SignPersonalMsgRequest = { path: this.path, message: toHex(this.rawData) }
-            this.path = ''
-            this.rawDataLen = 0
-            this.rawData = Buffer.alloc(0)
-            return this.request(EthRequestType.SignPersonalMessage, args)
-          } else {
-            assert(this.rawData.length < this.rawDataLen, 'APDU invalid message length')
-            // Continue to receive message chunks.
-            // TODO: timeout handling
+          const args = this.personalSignDecoder.receiveMessage(data, p1 === Constant.P1_00)
+          if (!args) {
             return await peripheral.send(bufferStatusCode(StatusCodes.OK))
+          } else {
+            return this.request(RequestType.SignPersonalMessage, args)
           }
         }
+
         case Constant.INS_0C: {
+          // signEIP712HashedMessage / signEIP712Message
           assert(data, 'APDU empty data')
           assert(p1 === Constant.P1_00, 'APDU invalid p1')
           const [pathLen, path] = readHdPath(data)
@@ -116,16 +104,19 @@ export class EthRequestHandler extends RequestHandler {
             const domainSeparator = toHex(data.subarray(pathLen, pathLen + 32))
             const hashStructMessage = toHex(data.subarray(pathLen + 32, pathLen + 64))
             const args: SignEIP712HashedMsgRequest = { path, domainSeparator, hashStructMessage }
-            return this.request(EthRequestType.SignEIP712HashedMessage, args)
+            return this.request(RequestType.SignEIP712HashedMessage, args)
           } else {
             assert(p2 === Constant.P2_00 || p2 === 0x01, 'APDU invalid p2')
+
+            const typedData = this.eip712Decoder.decode()
+
             const args: SignEIP712MsgRequest = {
               path,
-              typedData: this.eip712Decoder.typedData(),
+              typedData,
+              tokenInfoProvider: this.tokenInfoDecoder.provider(),
               legacy: p2 === Constant.P2_00
             }
-            this.eip712Decoder = new Eip712Decoder() // clear
-            return this.request(EthRequestType.SignEIP712Message, args)
+            return this.request(RequestType.SignEIP712Message, args)
           }
         }
         case Constant.INS_1A: {
@@ -136,12 +127,12 @@ export class EthRequestHandler extends RequestHandler {
             this.eip712Decoder.receiveTypeName(data)
           } else {
             assert(p2 === 0xff, 'APDU invalid p2')
-            this.eip712Decoder.receiveTypeDef(data)
+            this.eip712Decoder.receiveType(data)
           }
           return await peripheral.send(bufferStatusCode(StatusCodes.OK))
         }
         case Constant.INS_1C: {
-          // Receive `message` of EIP-712 typed data.
+          // Receive `domain` or `message` of EIP-712 typed data.
           assert(data, 'APDU empty data')
           if (p1 === Constant.P1_00 && p2 === Constant.P2_00) {
             this.eip712Decoder.receiveValue(data, 'root')
@@ -154,17 +145,47 @@ export class EthRequestHandler extends RequestHandler {
           } else {
             return await peripheral.send(bufferStatusCode(StatusCodes.UNKNOWN_APDU))
           }
+          return await peripheral.send(bufferStatusCode(StatusCodes.OK))
         }
         case Constant.INS_1E: {
+          // Receive EIP-712 filters.
           assert(p1 === Constant.P1_00, 'APDU invalid p1')
           switch (p2) {
-            case 0x00: {
+            case Constant.P2_00: {
+              this.eip712Decoder.receiveFilterActivate()
+              return await peripheral.send(bufferStatusCode(StatusCodes.OK))
+            }
+            case 0x0f: {
+              assert(data, 'APDU empty data')
+              this.eip712Decoder.receiveFilterContractName(data)
+              return await peripheral.send(bufferStatusCode(StatusCodes.OK))
+            }
+            default: {
+              assert(data, 'APDU empty data')
+              let format: 'raw' | 'datetime' | 'token' | 'amount'
+              switch (p2) {
+                case 0xff:
+                  format = 'raw'
+                  break
+                case 0xfc:
+                  format = 'datetime'
+                  break
+                case 0xfd:
+                  format = 'token'
+                  break
+                case 0xfe:
+                  format = 'amount'
+                  break
+                default:
+                  assert(false, 'APDU invalid p2')
+              }
+              this.eip712Decoder.receiveFilterShowField(data, format)
               return await peripheral.send(bufferStatusCode(StatusCodes.OK))
             }
           }
         }
         case Constant.INS_20: {
-          // GetChallenge
+          // getChallenge
           assert(p1 === Constant.P1_00 && p2 === Constant.P2_00, 'APDU invalid p1/p2')
           const challenge = randomBytes(4)
           return await peripheral.send(
@@ -173,26 +194,64 @@ export class EthRequestHandler extends RequestHandler {
               bufferStatusCode(StatusCodes.OK)])
           )
         }
+        case Constant.INS_0A: {
+          // provideERC20TokenInformation
+          assert(data, 'APDU empty data')
+          assert(p1 === Constant.P1_00 && p2 === Constant.P2_00, 'APDU invalid p1/p2')
+          const deviceTokenIndex = this.tokenInfoDecoder.receiveTokenInfo(data)
+          return await peripheral.send(
+            Buffer.concat([
+              Buffer.from([deviceTokenIndex]),
+              bufferStatusCode(StatusCodes.OK)])
+          )
+        }
+        case Constant.INS_12:
+        // fall through
+        case Constant.INS_16: {
+          // setExternalPlugin / setPlugin
+          assert(p1 === Constant.P1_00 && p2 === Constant.P2_00, 'APDU invalid p1/p2')
+          // 0x6984: the plugin requested is not installed on the device
+          return await peripheral.send(bufferStatusCode(0x6984))
+        }
+        case Constant.INS_14: {
+          // provideNFTInformation
+          assert(data, 'APDU empty data')
+          assert(p1 === Constant.P1_00 && p2 === Constant.P2_00, 'APDU invalid p1/p2')
+          this.nftInfoDecoder.receiveNftInfo(data)
+          return await peripheral.send(bufferStatusCode(StatusCodes.OK))
+        }
+        case Constant.INS_22: {
+          // provideDomainName
+          assert(data, 'APDU empty data')
+          assert(p1 === Constant.P1_00 || p1 === 0x01, 'APDU invalid p1')
+          assert(p2 === Constant.P2_00, 'APDU invalid p2')
+          this.domainNameDecoder.receiveDomainName(data, p1 === 0x01)
+          return await peripheral.send(bufferStatusCode(StatusCodes.OK))
+        }
       }
-    } else if (cla === Constant.CLA_E0) {
     }
 
     return await peripheral.send(bufferStatusCode(StatusCodes.UNKNOWN_APDU))
   }
 
-  request(type: EthRequestType, args?: Record<string, any>) {
+  request(type: RequestType, args: Record<string, any>) {
     const req: Request = {
       app: App.Ethereum,
       type,
-      args
+      args: {
+        ...args,
+        requestId: ++this.requestId
+      }
     }
   }
 
   override async respond(req: Request, rep: Record<string, any>) {
+    assert(req.args['requestId'] === this.requestId, 'invalid requestId')
+
     const peripheral = this.peripheral
 
     switch (req.type) {
-      case EthRequestType.GetAddress: {
+      case RequestType.GetAddress: {
         const r = rep as GetAddressResponse
         const publicKey = getBytes(r.publicKey)
         const address = Buffer.from(r.address, 'ascii')
@@ -210,7 +269,7 @@ export class EthRequestHandler extends RequestHandler {
         )
       }
 
-      case EthRequestType.SignTransaction: {
+      case RequestType.SignTransaction: {
         const { tx } = req.args as SignTransactionRequest
         const r = rep as Signature
         assert(
@@ -264,9 +323,9 @@ export class EthRequestHandler extends RequestHandler {
             bufferStatusCode(StatusCodes.OK)])
         )
       }
-      case EthRequestType.SignPersonalMessage:
-      case EthRequestType.SignEIP712HashedMessage:
-      case EthRequestType.SignEIP712Message: {
+      case RequestType.SignPersonalMessage:
+      case RequestType.SignEIP712HashedMessage:
+      case RequestType.SignEIP712Message: {
         const r = rep as Signature
         return await peripheral.send(
           Buffer.concat([
@@ -280,25 +339,30 @@ export class EthRequestHandler extends RequestHandler {
   }
 
   override clean() {
-    this.path = ''
-    this.rawDataLen = 0
-    this.rawData = Buffer.alloc(0)
-    this.typedData = {}
-    this.typedDataName = ''
+    this.domainNameDecoder.clean()
+    this.txDecoder.clean()
+    this.personalSignDecoder.clean()
+    this.eip712Decoder.clean()
   }
 
-  private path = ''
-  private rawDataLen = 0
-  private rawData = Buffer.alloc(0)
+  clear() {
+    this.tokenInfoDecoder.clear()
+    this.nftInfoDecoder.clear()
+    this.domainNameDecoder.clear()
+  }
 
-  private typedData: Record<string, TypedDataParameter[]> = {}
-  private typedDataName = ''
-  private typedDataMsgValueBuffers: Buffer[] = []
+  private timer = new RequestTimer()
+  private tokenInfoDecoder = new TokenInfoDecoder()
+  private nftInfoDecoder = new NftInfoDecoder()
+  private domainNameDecoder = new DomainNameDecoder(this.timer)
+  private txDecoder = new TransactionDecoder(this.timer)
+  private personalSignDecoder = new PersonalSignDecoder(this.timer)
+  private eip712Decoder = new Eip712Decoder(this.timer)
 
-  private eip712Decoder = new Eip712Decoder()
+  private requestId = 0
 }
 
-export enum EthRequestType {
+export enum RequestType {
   GetAddress,
   SignTransaction,
   SignPersonalMessage,
@@ -319,41 +383,9 @@ export type GetAddressResponse = {
   chainCode?: string
 }
 
-export type SignTransactionRequest = {
-  path: string
-  rawTx: Hex
-  tx: ReturnType<typeof parseTransaction>
-}
-
 export type Signature = {
   r: Hex
   s: Hex
   v: 27 | 28 | 27n | 28n
   yParity: 0 | 1
-}
-
-export type SignPersonalMsgRequest = {
-  path: string
-  message: Hex
-}
-
-export type SignEIP712HashedMsgRequest = {
-  path: string
-  domainSeparator: Hex
-  hashStructMessage: Hex
-}
-
-export type SignEIP712MsgRequest = {
-  path: string
-  typedData: Eip712TypedData
-  legacy: boolean // ignored
-}
-
-function readHdPath(data: Buffer): [number, string] {
-  const pathLen = data.readUInt8()
-  const path: Slip10RawIndex[] = []
-  for (let i = 0; i < pathLen; i++) {
-    path.push(new Slip10RawIndex(data.readUInt32BE(1 + 4 * i)))
-  }
-  return [1 + 4 * pathLen, pathToString(path)]
 }

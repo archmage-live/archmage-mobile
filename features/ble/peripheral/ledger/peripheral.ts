@@ -214,12 +214,17 @@ export enum Constant {
   INS_04 = 0x04,
   INS_06 = 0x06,
   INS_08 = 0x08,
+  INS_0A = 0x0a,
   INS_0C = 0x0c,
   INS_10 = 0x10,
+  INS_12 = 0x12,
+  INS_14 = 0x14,
+  INS_16 = 0x16,
   INS_1A = 0x1a,
   INS_1C = 0x1c,
   INS_1E = 0x1e,
   INS_20 = 0x20,
+  INS_22 = 0x22,
   INS_A7 = 0xa7,
   INS_D4 = 0xd4,
   INS_D8 = 0xd8,
@@ -263,7 +268,7 @@ export enum BatteryStatusTypes {
 export type Request = {
   app: App
   type: number
-  args?: Record<string, any>
+  args: Record<string, any>
 }
 
 export abstract class RequestHandler {
@@ -280,8 +285,4 @@ export function bufferStatusCode(statusCode: number) {
   const buffer = Buffer.alloc(2)
   buffer.writeUInt16BE(statusCode)
   return buffer
-}
-
-function equals(a: [], b: []) {
-  return a.length === b.length && a.every((val, index) => val === b[index])
 }
