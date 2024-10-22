@@ -88,7 +88,7 @@ class ExpoUsbModule : Module() {
   }
 
   fun requestPermission() {
-    usbManager.requestPermission()
+    // usbManager.requestPermission()
   }
 
   private lateinit var context: Context
