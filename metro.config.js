@@ -6,5 +6,6 @@ const { getSentryExpoConfig } = require('@sentry/react-native/metro')
 const config = getSentryExpoConfig(__dirname)
 
 config.resolver.sourceExts.push('sql')
+config.resolver.assetExts.push('pem', 'p12')
 
 module.exports = withNativeWind(config, { input: './global.css' })

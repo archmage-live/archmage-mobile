@@ -64,7 +64,8 @@
           "bluetoothAlwaysPermission": "Allow $(PRODUCT_NAME) to connect to bluetooth devices"
         }
       ],
-      "expo-ble-peripheral"
+      "expo-ble-peripheral",
+      "with-react-native-tcp-socket"
     ],
     "experiments": {
       "typedRoutes": true
