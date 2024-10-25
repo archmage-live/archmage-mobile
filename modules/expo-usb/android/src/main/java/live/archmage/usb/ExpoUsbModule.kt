@@ -281,6 +281,11 @@ class ExpoUsbModule : Module() {
     Function("openAccessory") { accessoryHashCode: Int ->
       val accessory = usbManager.accessoryList.find { it.hashCode() == accessoryHashCode }
         ?: return@Function false
+
+      if (accessoryFileDescriptors.contains(accessoryHashCode)) {
+        return@Function true
+      }
+
       val fileDescriptor = usbManager.openAccessory(accessory) ?: return@Function false
       fileDescriptor.close()
       val inputStream = FileInputStream(fileDescriptor.fileDescriptor)
@@ -297,7 +302,7 @@ class ExpoUsbModule : Module() {
     AsyncFunction("writeAccessory") { accessoryHashCode: Int, data: ByteArray, promise: Promise ->
       val pair = accessoryFileDescriptors[accessoryHashCode]
       if (pair == null) {
-        promise.reject(CodedException("UsbAccessory not found"))
+        promise.reject(CodedException("UsbAccessory file descriptor not found"))
         return@AsyncFunction
       }
       pair.first.third.write(data)
@@ -308,7 +313,7 @@ class ExpoUsbModule : Module() {
     AsyncFunction("readAccessory") { accessoryHashCode: Int, maxLength: Int, promise: Promise ->
       val pair = accessoryFileDescriptors[accessoryHashCode]
       if (pair == null) {
-        promise.reject(CodedException("UsbAccessory not found"))
+        promise.reject(CodedException("UsbAccessory file descriptor not found"))
         return@AsyncFunction
       }
       val buffer = ByteArray(maxLength)

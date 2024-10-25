@@ -1,6 +1,6 @@
 import { EventEmitter, NativeModulesProxy, Subscription } from 'expo-modules-core'
 
-import { ExpoUsbAccessory } from './ExpoUsbAccessory'
+import { ExpoUsbAccessory, ExpoUsbAccessoryConnection } from './ExpoUsbAccessory'
 import {
   ExpoUsbConfiguration,
   ExpoUsbDevice,
@@ -104,15 +104,11 @@ export class ExpoUsbManager {
   }
 
   openDevice(device: ExpoUsbDevice) {
-    const uuid = ExpoUsbModule.openDevice(device.deviceName)
-    if (!uuid) {
-      return false
-    }
-    return new ExpoUsbDeviceConnection(uuid)
+    return ExpoUsbDeviceConnection.create(device)
   }
 
-  openAccessory(accessory: ExpoUsbAccessory): boolean {
-    return ExpoUsbModule.openAccessory(accessory.hashCode)
+  openAccessory(accessory: ExpoUsbAccessory) {
+    return ExpoUsbAccessoryConnection.create(accessory)
   }
 
   hasPermission(deviceOrAccessory: ExpoUsbDevice | ExpoUsbAccessory): boolean {

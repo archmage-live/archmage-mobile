@@ -1,32 +1,5 @@
 import ExpoUsbModule from './ExpoUsbModule'
-
-abstract class Destroyable {
-  protected constructor(
-    public readonly uuid: string,
-    cleanup: () => void
-  ) {
-    Destroyable.cache.set(uuid, cleanup)
-    registry.register(this, uuid)
-  }
-
-  private static cache = new Map<string, () => void>()
-
-  static destroy(uuid: string) {
-    const cleanup = Destroyable.cache.get(uuid)
-    if (cleanup) {
-      Destroyable.cache.delete(uuid)
-      cleanup()
-    }
-  }
-
-  destroy() {
-    Destroyable.destroy(this.uuid)
-  }
-}
-
-const registry = new FinalizationRegistry((uuid: string) => {
-  Destroyable.destroy(uuid)
-})
+import { Destroyable } from './finalization'
 
 export class ExpoUsbDevice {
   constructor(
@@ -105,8 +78,16 @@ export class ExpoUsbEndpoint {
 }
 
 export class ExpoUsbDeviceConnection extends Destroyable {
-  constructor(uuid: string) {
+  private constructor(uuid: string) {
     super(uuid, () => ExpoUsbModule.closeDevice(this.uuid))
+  }
+
+  static create(device: ExpoUsbDevice) {
+    const uuid = ExpoUsbModule.openDevice(device.deviceName)
+    if (!uuid) {
+      return false
+    }
+    return new ExpoUsbDeviceConnection(uuid)
   }
 
   claimInterface(inf: ExpoUsbInterface, force: boolean = true): boolean {

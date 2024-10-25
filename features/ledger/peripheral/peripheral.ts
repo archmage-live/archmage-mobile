@@ -14,8 +14,7 @@ import { filter, firstValueFrom, map, merge } from 'rxjs'
 
 import { logger } from '@/archmage/logger/logger'
 import { sleep } from '@/archmage/time/timing'
-
-import { BlePeripheral } from '../peripheral'
+import { BlePeripheral } from '@/features/ble/peripheral'
 
 export abstract class BaseLedgerBlePeripheral {
   protected device = getDeviceModel(DeviceModelId.nanoX)
