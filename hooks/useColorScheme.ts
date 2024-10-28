@@ -6,7 +6,7 @@ import {
   ColorSchemeName,
   useColorScheme as useReactnativeColorScheme
 } from 'react-native'
-import useAsync from 'react-use/lib/useAsync'
+import { useAsync } from 'react-use'
 
 export function useColorScheme() {
   const colorScheme = useReactnativeColorScheme()
