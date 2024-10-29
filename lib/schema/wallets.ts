@@ -4,16 +4,17 @@ export const wallets = sqliteTable(
   'wallets',
   {
     id: integer('id').primaryKey(),
-    sortId: integer('id').unique().notNull(),
-    name: text('name').unique().notNull()
+    sortId: integer('sortId').unique().notNull(),
+    type: text('type').notNull(),
+    name: text('name').unique().notNull(),
+    hash: text('hash').unique().notNull(),
+    info: text('info', { mode: 'json' }).notNull(),
+    createdAt: integer('createdAt').notNull()
   },
   (wallets) => ({
-    nameIdx: uniqueIndex('nameIdx').on(wallets.name)
+    typeIdx: uniqueIndex('typeIdx').on(wallets.type)
   })
 )
 
 export type Wallet = typeof wallets.$inferSelect
 export type InsertWallet = typeof wallets.$inferInsert
-
-const a = {} as Wallet
-a.name
